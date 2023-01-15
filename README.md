@@ -76,12 +76,68 @@ docker exec <peer_container_name> peer channel list
 * We can perform only 2 data tasks using chaincode: **update** and **query** ledger. Hence once the data is written to the ledger, it can neither be deleted nor modified.
 * Logic of our simple chaincode is written [here](chaincode/main.go)
 * Five stages of Chaincode Lifecycle:
-  * Develop - Write chaincode in any language supported by HF.
+  * Develop - Write chaincode in a language supported by HF.
   * Package - Embed chaincode into a package.
   * Install - Install chaincode on peer nodes.
-  * Approve - Approve chaincode on peer nodes.
-  * Commit - Commit chaincode on peer nodes.
+  * Approve - Approve chaincode from organizations.
+  * Commit - Commit chaincode on channel.
   
     <img src="docs/chaincode_lifecycle.jpeg" alt="Chaincode Lifecycle" width="300"/>
 
-### Chaincode Develop
+### Chaincode Development
+* Currently HF supports chaincode development in 3 languages: **Go**, **Java** and **Node.js**. We will use **Go** for our chaincode development.
+* Chaincode development can be done using **low level APIs** or **high level APIs**. We will use high level APIs for our chaincode development.
+* A simple smart contract created in go mainly consists of:
+  * A data struct to represent the data entity in the ledger.
+    ```go
+    type Car struct {
+        ID     string `json:"id"`
+	    Name   string `json:"name"`
+        Owner  string `json:"owner"`
+    }
+    ```
+  * A smart contract struct embedding **github.com/hyperledger/fabric-contract-api-go/contractapi.Contract** to satisfy **github.com/hyperledger/fabric-contract-api-go/contractapi.ContractInterface**
+    ```go
+    type CarOwnershipSmartContract struct {
+        contractapi.Contract
+    }
+    ```
+  * Methods on smart contract struct to perform operations like add, get and list data struct objects on the ledger.
+    ```go
+    func (s *CarOwnershipSmartContract) AddCar(ctx contractapi.TransactionContextInterface, id, name, owner string) error {
+        car := Car{
+            ID:    id,
+            Name:  name,
+            Owner: owner,
+        }
+        carAsBytes, _ := json.Marshal(car)
+        return ctx.GetStub().PutState(id, carAsBytes)
+    }
+
+    func (s *CarOwnershipSmartContract) GetCar(ctx contractapi.TransactionContextInterface, id string) (*Car, error) {
+        carAsBytes, err := ctx.GetStub().GetState(id)
+        if err != nil {
+            return nil, fmt.Errorf("Failed to read from world state. %s", err.Error())
+        }
+        if carAsBytes == nil {
+            return nil, fmt.Errorf("%s does not exist", id)
+        }
+        car := new(Car)
+        _ = json.Unmarshal(carAsBytes, car)
+        return car, nil
+    }
+    ```
+  * Finally a main function to instantiate the smart contract and start the chaincode.
+    ```go
+    func main() {
+        chaincode, err := contractapi.NewChaincode(new(CarOwnershipSmartContract))
+        if err != nil {
+            fmt.Printf("Error create car ownership chaincode: %s", err.Error())
+            return
+        }
+        if err := chaincode.Start(); err != nil {
+            fmt.Printf("Error starting car ownership chaincode: %s", err.Error())
+        }
+    }
+    ```
+### Chaincode Packaging

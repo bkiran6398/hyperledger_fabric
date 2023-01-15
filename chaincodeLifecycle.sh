@@ -1,5 +1,5 @@
-export PATH=${PWD}/../bin:${PWD}:$PATH
-export FABRIC_CFG_PATH=${PWD}/../config/
+export PATH=${PWD}/fabric-samples/bin/:${PWD}:$PATH
+export FABRIC_CFG_PATH=${PWD}/fabric-samples/config/
 export CORE_PEER_TLS_ENABLED=true
 export ORDERER_CA=${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 export ORDERER_ADDRESS=localhost:7050
